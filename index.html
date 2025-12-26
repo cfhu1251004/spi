@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPI Master Calculator</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+        h1 { margin: 0; font-size: 1.2rem; }
+        
+        /* タブナビゲーション */
+        .tabs {
+            display: flex;
+            background: #e2e8f0;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-weight: bold;
+            color: #64748b;
+            border-bottom: 3px solid transparent;
+            transition: 0.3s;
+        }
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+            background: white;
+        }
+
+        /* コンテンツエリア */
+        .content { padding: 20px; display: none; }
+        .content.active { display: block; }
+
+        /* 入力フォーム */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-size: 0.9rem; font-weight: bold; }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            box-sizing: border-box;
+            outline: none;
+        }
+        input:focus { border-color: var(--primary); }
+        
+        /* 計算ボタン */
+        .btn-calc {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .btn-calc:active { opacity: 0.9; }
+
+        /* 結果表示 */
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .result-label { font-size: 0.8rem; color: #64748b; }
+        .result-value { font-size: 1.5rem; font-weight: bold; color: var(--primary); }
+        .error { color: #ef4444; font-size: 1rem; }
+
+        /* ヒントテキスト */
+        .hint { font-size: 0.8rem; color: #94a3b8; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>SPI Solver v1.0</h1>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('tab-comb')">順列・組合</button>
+        <button class="tab-btn" onclick="switchTab('tab-profit')">損益算</button>
+        <button class="tab-btn" onclick="switchTab('tab-speed')">速度算</button>
+        <button class="tab-btn" onclick="switchTab('tab-base')">進数</button>
+    </div>
+
+    <div id="tab-comb" class="content active">
+        <div class="form-group">
+            <label>全体の数 (n)</label>
+            <input type="number" id="comb-n" placeholder="例: 10">
+        </div>
+        <div class="form-group">
+            <label>選ぶ数 (r)</label>
+            <input type="number" id="comb-r" placeholder="例: 3">
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-calc" onclick="calcPerm()">nPr (順列)</button>
+            <button class="btn-calc" onclick="calcComb()">nCr (組合せ)</button>
+        </div>
+        <div class="result-box">
+            <div class="result-label">計算結果</div>
+            <div id="res-comb" class="result-value">-</div>
+        </div>
+    </div>
+
+    <div id="tab-profit" class="content">
+        <p class="hint">※求めたい項目を1つ空欄にしてボタンを押してください</p>
+        <div class="form-group">
+            <label>原価 (円)</label>
+            <input type="number" id="money-cost" placeholder="Cost">
+        </div>
+        <div class="form-group">
+            <label>利益率 (割・%) <small>※0.3 または 30 で入力</small></label>
+            <input type="number" id="money-rate" placeholder="Rate">
+        </div>
+        <div class="form-group">
+            <label>定価 (円)</label>
+            <input type="number" id="money-price" placeholder="Price">
+        </div>
+        <button class="btn-calc" onclick="calcMoney()">空欄を計算</button>
+        <div class="result-box">
+            <div class="result-label">答え</div>
+            <div id="res-money" class="result-value">-</div>
+        </div>
+    </div>
+
+    <div id="tab-speed" class="content">
+        <p class="hint">※求めたい項目を1つ空欄にしてボタンを押してください</p>
+        <div class="form-group">
+            <label>速さ (km/hなど)</label>
+            <input type="number" id="spd-speed">
+        </div>
+        <div class="form-group">
+            <label>時間</label>
+            <input type="number" id="spd-time">
+        </div>
+        <div class="form-group">
+            <label>距離 (kmなど)</label>
+            <input type="number" id="spd-dist">
+        </div>
+        <button class="btn-calc" onclick="calcSpeed()">空欄を計算</button>
+        <div class="result-box">
+            <div class="result-label">答え</div>
+            <div id="res-speed" class="result-value">-</div>
+        </div>
+    </div>
+
+    <div id="tab-base" class="content">
+        <div class="form-group">
+            <label>変換元の数値</label>
+            <input type="text" id="base-val" placeholder="例: 1010">
+        </div>
+        <div class="form-group">
+            <label>何進数ですか？</label>
+            <input type="number" id="base-from" placeholder="例: 2" value="2">
+        </div>
+        <button class="btn-calc" onclick="calcBase()">10進数に変換</button>
+        <div class="result-box">
+            <div class="result-label">10進数</div>
+            <div id="res-base" class="result-value">-</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // タブ切り替え処理
+    function switchTab(tabId) {
+        document.querySelectorAll('.content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        event.target.classList.add('active');
+    }
+
+    // 階乗計算
+    function factorial(n) {
+        if (n < 0) return -1;
+        if (n == 0) return 1;
+        let result = 1;
+        for (let i = 2; i <= n; i++) result *= i;
+        return result;
+    }
+
+    // --- 順列・組合せ ---
+    function calcPerm() {
+        const n = parseInt(document.getElementById('comb-n').value);
+        const r = parseInt(document.getElementById('comb-r').value);
+        if (isNaN(n) || isNaN(r) || n < r) {
+            document.getElementById('res-comb').innerHTML = '<span class="error">入力エラー</span>';
+            return;
+        }
+        const res = factorial(n) / factorial(n - r);
+        document.getElementById('res-comb').innerText = res.toLocaleString();
+    }
+
+    function calcComb() {
+        const n = parseInt(document.getElementById('comb-n').value);
+        const r = parseInt(document.getElementById('comb-r').value);
+        if (isNaN(n) || isNaN(r) || n < r) {
+            document.getElementById('res-comb').innerHTML = '<span class="error">入力エラー</span>';
+            return;
+        }
+        const res = factorial(n) / (factorial(r) * factorial(n - r));
+        document.getElementById('res-comb').innerText = res.toLocaleString();
+    }
+
+    // --- 損益算 (逆算機能付き) ---
+    function calcMoney() {
+        let cost = parseFloat(document.getElementById('money-cost').value);
+        let rate = parseFloat(document.getElementById('money-rate').value);
+        let price = parseFloat(document.getElementById('money-price').value);
+        const resBox = document.getElementById('res-money');
+
+        // 利益率が30のような整数で来た場合、0.3に変換する簡易処理（1以上なら%扱いとする）
+        if (rate >= 1) rate = rate / 100; // 30 -> 0.3, 3 -> 0.03? SPIは割のケースもあるので注意が必要だが、ここでは％か小数と仮定
+
+        if (!isNaN(cost) && !isNaN(rate) && isNaN(price)) {
+            // 定価を求める
+            resBox.innerText = Math.round(cost * (1 + rate)).toLocaleString() + " 円";
+        } else if (isNaN(cost) && !isNaN(rate) && !isNaN(price)) {
+            // 原価を求める (定価 ÷ (1+利益率))
+            resBox.innerText = Math.round(price / (1 + rate)).toLocaleString() + " 円";
+        } else if (!isNaN(cost) && isNaN(rate) && !isNaN(price)) {
+            // 利益率を求める ((定価 - 原価) ÷ 原価)
+            let r = (price - cost) / cost;
+            resBox.innerText = (r * 100).toFixed(1) + " %";
+        } else {
+            resBox.innerHTML = '<span class="error">2箇所入力してください</span>';
+        }
+    }
+
+    // --- 速度算 (逆算機能付き) ---
+    function calcSpeed() {
+        const s = parseFloat(document.getElementById('spd-speed').value);
+        const t = parseFloat(document.getElementById('spd-time').value);
+        const d = parseFloat(document.getElementById('spd-dist').value);
+        const resBox = document.getElementById('res-speed');
+
+        if (!isNaN(s) && !isNaN(t) && isNaN(d)) {
+            // 距離 = 速さ x 時間
+            resBox.innerText = (s * t).toLocaleString();
+        } else if (!isNaN(s) && isNaN(t) && !isNaN(d)) {
+            // 時間 = 距離 / 速さ
+            resBox.innerText = (d / s).toFixed(2);
+        } else if (isNaN(s) && !isNaN(t) && !isNaN(d)) {
+            // 速さ = 距離 / 時間
+            resBox.innerText = (d / t).toFixed(2);
+        } else {
+            resBox.innerHTML = '<span class="error">2箇所入力してください</span>';
+        }
+    }
+
+    // --- 進数変換 ---
+    function calcBase() {
+        const val = document.getElementById('base-val').value;
+        const base = parseInt(document.getElementById('base-from').value);
+        
+        try {
+            const res = parseInt(val, base);
+            if (isNaN(res)) throw "Error";
+            document.getElementById('res-base').innerText = res;
+        } catch (e) {
+            document.getElementById('res-base').innerHTML = '<span class="error">変換できません</span>';
+        }
+    }
+</script>
+
+</body>
+</html>
